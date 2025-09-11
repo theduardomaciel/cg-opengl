@@ -1,0 +1,15 @@
+[submodule "external/glfw"]
+	path = external/glfw
+	url = https://github.com/glfw/glfw
+[submodule "external/glad"]
+	path = external/glad
+	url = https://github.com/Dav1dde/glad
+[submodule "external/glm"]
+	path = external/glm
+	url = https://github.com/g-truc/glm
+[submodule "external/assimp"]
+	path = external/assimp
+	url = https://github.com/assimp/assimp
+[submodule "external/bullet3"]
+	path = external/bullet3
+	url = https://github.com/bulletphysics/bullet3
