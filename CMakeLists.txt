@@ -12,26 +12,45 @@ option(GLFW_BUILD_TESTS "" OFF)
 
 add_subdirectory(external/glfw)
 
-add_executable(cg_opengl
-    src/main.cpp
+set(CG_ENGINE_SOURCES
+    src/core/Application.cpp
+    src/core/Window.cpp
+    src/core/FPSCounter.cpp
+    src/render/Shader.cpp
+    src/render/Grid.cpp
+    src/input/Camera.cpp
+    src/input/Input.cpp
+        src/physics/Physics.cpp
+    src/ui/DebugUI.cpp
     external/glad-build/src/glad.c
 )
 
-# Includes (GLAD gerado + GLFW + GLM header-only)
-target_include_directories(cg_opengl PRIVATE
+add_library(cg_engine STATIC ${CG_ENGINE_SOURCES})
+
+target_include_directories(cg_engine PUBLIC
+    include
     external/glad-build/include
     external/glfw/include
     external/glm
 )
 
-# Link GLFW (puxa opengl32 no Windows automaticamente via target)
-target_link_libraries(cg_opengl PRIVATE glfw)
+target_link_libraries(cg_engine PUBLIC glfw)
 
 if (WIN32)
-    target_compile_definitions(cg_opengl PRIVATE _CRT_SECURE_NO_WARNINGS)
+    target_compile_definitions(cg_engine PRIVATE _CRT_SECURE_NO_WARNINGS)
 endif()
 
 # Warnings
+if (MSVC)
+    target_compile_options(cg_engine PRIVATE /W4 /permissive-)
+else()
+    target_compile_options(cg_engine PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+
+add_executable(cg_opengl src/main.cpp)
+
+target_link_libraries(cg_opengl PRIVATE cg_engine)
+
 if (MSVC)
     target_compile_options(cg_opengl PRIVATE /W4 /permissive-)
 else()

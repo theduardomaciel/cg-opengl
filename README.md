@@ -17,6 +17,35 @@ Construído com OpenGL (3.3+), C++, e CMake.
 
 ---
 
+## Arquitetura Modular
+A aplicação foi refatorada para um layout de engine simples e extensível:
+
+```
+include/
+  core/      -> Application, Window
+  input/     -> Camera, Input helpers
+  render/    -> Shader, Grid (futuro: Material, Mesh, Renderer)
+  physics/   -> PhysicsSystem (stub p/ Bullet)
+  ui/        -> DebugUI (stub p/ ImGui)
+src/
+  core/, input/, render/, physics/, ui/
+```
+
+Principais conceitos:
+- Application: orquestra loop principal (input -> física -> UI -> render).
+- Sistemas desacoplados: cada domínio em pasta própria para evolução incremental.
+- Fácil expansão: adicionar novo módulo = criar headers em `include/<mod>/` + fontes e registrar no `CMakeLists.txt` (lista `CG_ENGINE_SOURCES`).
+- Shader/Render isolados para futura adição de materiais, iluminação e carregamento de modelos.
+- Stubs (PhysicsSystem, DebugUI) permitem integrar Bullet / ImGui sem alterar o loop.
+
+Extensão rápida:
+1. Criar arquivos em `include/novo/NovoSistema.h` e `src/novo/NovoSistema.cpp`.
+2. Incluir no `CMakeLists.txt` em `CG_ENGINE_SOURCES`.
+3. Instanciar em `Application` (campo + init + chamada no loop se necessário).
+4. (Opcional) Adicionar dependências externas com `add_subdirectory` ou `find_package`.
+
+---
+
 ## Estrutura de Dependências
 - GLFW: criação de janela e entrada
 - GLAD: carregamento de funções OpenGL 3.3 Core
