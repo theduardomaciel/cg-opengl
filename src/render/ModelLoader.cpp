@@ -68,7 +68,7 @@ namespace cg
 
             try
             {
-                parseLine(line, data, *model);
+                parseLine(line, data, *model, filePath);
             }
             catch (const std::exception &e)
             {
@@ -79,7 +79,7 @@ namespace cg
         }
 
         // =================== FINALIZAÇÃO ===================
-        // Adiciona a última mesh se houver dados pendentes
+        // Finaliza a mesh atual se houver dados pendentes
         finalizeMesh(data, *model);
 
         file.close();
@@ -105,7 +105,7 @@ namespace cg
         return model;
     }
 
-    void ModelLoader::parseLine(const std::string &line, ParseData &data, Model &model)
+    void ModelLoader::parseLine(const std::string &line, ParseData &data, Model &model, const std::string &objFilePath)
     {
         std::string trimmedLine = trim(line);
 
@@ -138,7 +138,15 @@ namespace cg
             {
                 parseObject(trimmedLine, data, model);
             }
-            // Ignora outras linhas (mtllib, usemtl, s, g, etc.)
+            else if (trimmedLine.substr(0, 6) == "mtllib")
+            {
+                parseMaterialLib(trimmedLine, data, objFilePath);
+            }
+            else if (trimmedLine.substr(0, 6) == "usemtl")
+            {
+                parseUseMaterial(trimmedLine, data);
+            }
+            // Ignora outras linhas (s, g, etc.)
         }
     }
 
@@ -270,18 +278,13 @@ namespace cg
                 meshName = "Mesh_" + std::to_string(model.getMeshCount() + 1);
             }
 
-            // =================== DETECÇÃO AUTOMÁTICA DE MATERIAL DE VIDRO ===================
-            std::shared_ptr<Material> material = nullptr;
+            // =================== APLICAÇÃO DE MATERIAL ===================
+            std::shared_ptr<Material> material = data.currentMaterial;
 
-            // Verifica se o nome da mesh contém "Glass" (case-insensitive)
-            std::string meshNameLower = meshName;
-            std::transform(meshNameLower.begin(), meshNameLower.end(), meshNameLower.begin(), ::tolower);
-
-            if (meshNameLower.find("glass") != std::string::npos)
+            // Se não há material definido, aplica detecção automática
+            if (!material)
             {
-                // Cria material de vidro com transparência moderada
-                material = std::make_shared<Material>(Material::createGlass(0.4f, glm::vec3(0.9f, 0.95f, 1.0f)));
-                std::cout << "Material de vidro aplicado automaticamente à mesh: " << meshName << std::endl;
+                material = detectMaterialFromName(meshName);
             }
 
             auto mesh = std::make_unique<Mesh>(data.currentVertices, data.currentIndices, meshName, material);
@@ -292,6 +295,7 @@ namespace cg
             data.currentIndices.clear();
             data.vertexMap.clear();
             data.currentObjectName.clear();
+            data.currentMaterial = nullptr; // Reset do material atual
         }
     }
 
@@ -445,6 +449,261 @@ namespace cg
         }
 
         return tokens;
+    }
+
+    void ModelLoader::parseMaterialLib(const std::string &line, ParseData &data, const std::string &objFilePath)
+    {
+        std::istringstream iss(line);
+        std::string token;
+        iss >> token; // consome o 'mtllib'
+
+        std::string mtlFile;
+        if (iss >> mtlFile)
+        {
+            // Resolve o caminho relativo
+            std::filesystem::path objPath(objFilePath);
+            std::filesystem::path mtlPath = objPath.parent_path() / mtlFile;
+
+            std::cout << "Carregando biblioteca de materiais: " << mtlPath << std::endl;
+
+            auto materials = loadMaterials(mtlPath.string());
+
+            // Adiciona os materiais ao ParseData
+            for (const auto &pair : materials)
+            {
+                data.materials[pair.first] = pair.second;
+            }
+
+            std::cout << "Carregados " << materials.size() << " materiais." << std::endl;
+        }
+    }
+
+    void ModelLoader::parseUseMaterial(const std::string &line, ParseData &data)
+    {
+        std::istringstream iss(line);
+        std::string token;
+        iss >> token; // consome o 'usemtl'
+
+        std::string materialName;
+        if (iss >> materialName)
+        {
+            auto it = data.materials.find(materialName);
+            if (it != data.materials.end())
+            {
+                data.currentMaterial = it->second;
+                std::cout << "Usando material: " << materialName << std::endl;
+            }
+            else
+            {
+                std::cerr << "AVISO: Material não encontrado: " << materialName << std::endl;
+                data.currentMaterial = createDefaultMaterial(materialName);
+            }
+        }
+    }
+
+    std::unordered_map<std::string, std::shared_ptr<Material>> ModelLoader::loadMaterials(const std::string &filePath)
+    {
+        std::unordered_map<std::string, std::shared_ptr<Material>> materials;
+
+        std::ifstream file(filePath);
+        if (!file.is_open())
+        {
+            std::cerr << "ERRO: Não foi possível abrir o arquivo MTL: " << filePath << std::endl;
+            return materials;
+        }
+
+        std::string line;
+        std::string currentMaterial;
+
+        while (std::getline(file, line))
+        {
+            try
+            {
+                parseMaterialLine(line, materials, currentMaterial);
+            }
+            catch (const std::exception &e)
+            {
+                std::cerr << "ERRO ao processar linha MTL: " << e.what() << std::endl;
+                std::cerr << "Linha: " << line << std::endl;
+            }
+        }
+
+        file.close();
+        return materials;
+    }
+
+    void ModelLoader::parseMaterialLine(const std::string &line,
+                                        std::unordered_map<std::string, std::shared_ptr<Material>> &materials,
+                                        std::string &currentMaterial)
+    {
+        std::string trimmedLine = trim(line);
+
+        // Ignora linhas vazias e comentários
+        if (trimmedLine.empty() || trimmedLine[0] == '#')
+        {
+            return;
+        }
+
+        std::istringstream iss(trimmedLine);
+        std::string token;
+        iss >> token;
+
+        if (token == "newmtl")
+        {
+            // Novo material
+            if (iss >> currentMaterial)
+            {
+                std::cout << "Definindo material: " << currentMaterial << std::endl;
+
+                // Detecta automaticamente o tipo pelo nome do material
+                auto detectedMaterial = detectMaterialFromName(currentMaterial);
+                if (detectedMaterial)
+                {
+                    // Usa o material detectado como base, mas preserva o nome original
+                    materials[currentMaterial] = detectedMaterial;
+                    std::cout << "  -> Tipo detectado automaticamente pelo nome" << std::endl;
+                }
+                else
+                {
+                    // Cria material padrão se não detectou tipo específico
+                    materials[currentMaterial] = std::make_shared<Material>(currentMaterial);
+                }
+            }
+        }
+        else if (!currentMaterial.empty() && materials.find(currentMaterial) != materials.end())
+        {
+            auto material = materials[currentMaterial];
+
+            if (token == "Kd") // Cor difusa (albedo)
+            {
+                float r, g, b;
+                if (iss >> r >> g >> b)
+                {
+                    material->setAlbedo(glm::vec3(r, g, b));
+                }
+            }
+            else if (token == "Ks") // Cor especular
+            {
+                float r, g, b;
+                if (iss >> r >> g >> b)
+                {
+                    material->setSpecular(glm::vec3(r, g, b));
+                }
+            }
+            else if (token == "Ke") // Cor emissiva
+            {
+                float r, g, b;
+                if (iss >> r >> g >> b)
+                {
+                    material->setEmissive(glm::vec3(r, g, b));
+                }
+            }
+            else if (token == "Ns") // Shininess
+            {
+                float shininess;
+                if (iss >> shininess)
+                {
+                    material->setShininess(shininess);
+                }
+            }
+            else if (token == "d") // Dissolve (opacity)
+            {
+                float alpha;
+                if (iss >> alpha)
+                {
+                    material->setAlpha(alpha);
+                }
+            }
+            else if (token == "Tr") // Transparency (inverso de d)
+            {
+                float transparency;
+                if (iss >> transparency)
+                {
+                    material->setAlpha(1.0f - transparency);
+                }
+            }
+            else if (token == "Ni") // Index of refraction
+            {
+                float ior;
+                if (iss >> ior)
+                {
+                    material->setIndexOfRefraction(ior);
+                }
+            }
+            // Ignora outras propriedades como map_Kd, illum, etc. por enquanto
+        }
+    }
+
+    std::shared_ptr<Material> ModelLoader::createDefaultMaterial(const std::string &name)
+    {
+        auto material = std::make_shared<Material>(name);
+        // Usa valores padrão da classe Material
+        return material;
+    }
+
+    std::shared_ptr<Material> ModelLoader::detectMaterialFromName(const std::string &name)
+    {
+        std::string nameLower = name;
+        std::transform(nameLower.begin(), nameLower.end(), nameLower.begin(), ::tolower);
+
+        // =================== DETECÇÃO DE VIDRO ===================
+        // Padrões comuns do Blender e nomes em português/inglês
+        if (nameLower.find("glass") != std::string::npos || nameLower.find("vidro") != std::string::npos)
+        {
+            std::cout << "  -> Material de vidro detectado: " << name << std::endl;
+            return std::make_shared<Material>(Material::createGlass(0.4f, glm::vec3(0.9f, 0.95f, 1.0f)));
+        }
+
+        // =================== DETECÇÃO DE METAL ===================
+        if (nameLower.find("metal") != std::string::npos || nameLower.find("steel") != std::string::npos)
+        {
+            std::cout << "  -> Material metálico detectado: " << name << std::endl;
+
+            // Cores específicas por tipo de metal
+            glm::vec3 metalColor = glm::vec3(0.7f, 0.7f, 0.7f); // Padrão cinza
+
+            if (nameLower.find("copper") != std::string::npos || nameLower.find("cobre") != std::string::npos)
+                metalColor = glm::vec3(0.72f, 0.45f, 0.20f); // Cobre
+            else if (nameLower.find("brass") != std::string::npos)
+                metalColor = glm::vec3(0.71f, 0.65f, 0.26f); // Latão
+            else if (nameLower.find("gold") != std::string::npos || nameLower.find("ouro") != std::string::npos)
+                metalColor = glm::vec3(1.0f, 0.84f, 0.0f); // Ouro
+
+            return std::make_shared<Material>(Material::createMetal(metalColor));
+        }
+
+        // =================== DETECÇÃO DE EMISSIVOS/LUZES ===================
+        if (nameLower.find("light") != std::string::npos || nameLower.find("lamp") != std::string::npos)
+        {
+            std::cout << "  -> Material emissivo detectado: " << name << std::endl;
+            auto material = std::make_shared<Material>(MaterialType::EMISSIVE, name);
+
+            // Cores específicas por tipo de luz
+            if (nameLower.find("red") != std::string::npos || nameLower.find("vermelho") != std::string::npos)
+                material->setEmissive(glm::vec3(1.0f, 0.2f, 0.2f));
+            else if (nameLower.find("blue") != std::string::npos || nameLower.find("azul") != std::string::npos)
+                material->setEmissive(glm::vec3(0.2f, 0.2f, 1.0f));
+            else if (nameLower.find("green") != std::string::npos || nameLower.find("verde") != std::string::npos)
+                material->setEmissive(glm::vec3(0.2f, 1.0f, 0.2f));
+            else
+                material->setEmissive(glm::vec3(1.0f, 1.0f, 0.8f)); // Luz branca amarelada padrão
+
+            material->setAlbedo(glm::vec3(0.9f, 0.9f, 0.8f));
+            return material;
+        }
+
+        // =================== DETECÇÃO DE PLÁSTICO ===================
+        if (nameLower.find("plastic") != std::string::npos ||
+            nameLower.find("plastico") != std::string::npos ||
+            nameLower.find("rubber") != std::string::npos ||
+            nameLower.find("borracha") != std::string::npos)
+        {
+            std::cout << "  -> Material plástico detectado: " << name << std::endl;
+            return std::make_shared<Material>(Material::createPlastic(glm::vec3(0.8f, 0.8f, 0.8f)));
+        }
+
+        // Retorna nullptr se não detectou nenhum tipo específico
+        return nullptr;
     }
 
 } // namespace cg

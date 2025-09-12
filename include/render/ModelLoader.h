@@ -21,7 +21,6 @@ namespace cg
      *
      * Limitações atuais:
      * - Apenas faces triangulares (não quads)
-     * - Não carrega materiais (.mtl)
      * - Não suporta grupos (g)
      */
     class ModelLoader
@@ -71,9 +70,13 @@ namespace cg
             std::vector<Vertex> currentVertices;
             std::vector<GLuint> currentIndices;
             std::string currentObjectName;
+            std::shared_ptr<Material> currentMaterial; // Material atual
 
             // Mapa para evitar vértices duplicados (otimização)
             std::unordered_map<std::string, GLuint> vertexMap;
+
+            // Biblioteca de materiais carregados
+            std::unordered_map<std::string, std::shared_ptr<Material>> materials;
         };
 
         /**
@@ -99,8 +102,9 @@ namespace cg
          * @param line Linha a ser processada
          * @param data Dados de parsing onde armazenar resultados
          * @param model Modelo onde adicionar meshes completas
+         * @param objFilePath Caminho do arquivo OBJ (para resolver caminhos relativos de .mtl)
          */
-        static void parseLine(const std::string &line, ParseData &data, Model &model);
+        static void parseLine(const std::string &line, ParseData &data, Model &model, const std::string &objFilePath);
 
         /**
          * @brief Processa uma linha de vértice (v x y z)
@@ -126,6 +130,16 @@ namespace cg
          * @brief Processa uma linha de objeto (o nome)
          */
         static void parseObject(const std::string &line, ParseData &data, Model &model);
+
+        /**
+         * @brief Processa uma linha de biblioteca de materiais (mtllib arquivo.mtl)
+         */
+        static void parseMaterialLib(const std::string &line, ParseData &data, const std::string &objFilePath);
+
+        /**
+         * @brief Processa uma linha de uso de material (usemtl nome_material)
+         */
+        static void parseUseMaterial(const std::string &line, ParseData &data);
 
         /**
          * @brief Finaliza a mesh atual e a adiciona ao modelo
@@ -156,6 +170,39 @@ namespace cg
          * @brief Divide uma string em tokens usando um delimitador
          */
         static std::vector<std::string> split(const std::string &str, char delimiter);
+
+        // =================== MÉTODOS PARA MATERIAIS ===================
+
+        /**
+         * @brief Carrega um arquivo .mtl e retorna um mapa de materiais
+         * @param filePath Caminho para o arquivo .mtl
+         * @return Mapa de nome_material -> Material
+         */
+        static std::unordered_map<std::string, std::shared_ptr<Material>> loadMaterials(const std::string &filePath);
+
+        /**
+         * @brief Faz o parsing de uma linha do arquivo .mtl
+         * @param line Linha a ser processada
+         * @param materials Mapa de materiais onde armazenar resultados
+         * @param currentMaterial Nome do material sendo processado atualmente
+         */
+        static void parseMaterialLine(const std::string &line,
+                                      std::unordered_map<std::string, std::shared_ptr<Material>> &materials,
+                                      std::string &currentMaterial);
+
+        /**
+         * @brief Cria um material padrão caso não seja encontrado
+         * @param name Nome do material
+         * @return Material padrão
+         */
+        static std::shared_ptr<Material> createDefaultMaterial(const std::string &name);
+
+        /**
+         * @brief Detecta automaticamente o tipo de material baseado no nome
+         * @param name Nome do objeto/material
+         * @return Material apropriado ou nullptr se não detectado
+         */
+        static std::shared_ptr<Material> detectMaterialFromName(const std::string &name);
 
         // =================== DADOS ESTÁTICOS ===================
         static LoadStats sLastStats; // Estatísticas do último carregamento

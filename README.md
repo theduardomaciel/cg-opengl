@@ -33,7 +33,7 @@ include/
 src/
   core/, input/, render/, physics/, ui/
 models/
-  structure_v5.obj -> Modelo principal do centro histórico
+  structure_v{x}.obj -> Modelo principal do centro histórico
 ```
 
 Principais conceitos:

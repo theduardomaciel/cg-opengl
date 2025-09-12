@@ -121,9 +121,9 @@ namespace cg
 
         // Lista de caminhos possíveis para o modelo (em ordem de prioridade)
         std::vector<std::string> possiblePaths = {
-            "models/structure_v5.obj",       // Caminho relativo do projeto
-            "../models/structure_v5.obj",    // Uma pasta acima (se executando do build)
-            "../../models/structure_v5.obj", // Duas pastas acima
+            "models/structure_v6.obj",       // Caminho relativo do projeto
+            "../models/structure_v6.obj",    // Uma pasta acima (se executando do build)
+            "../../models/structure_v6.obj", // Duas pastas acima
         };
 
         std::unique_ptr<Model> model = nullptr;
@@ -166,7 +166,7 @@ namespace cg
 
         // =================== CONFIGURAÇÃO DA CÂMERA ===================
         // Posição inicial: elevada e afastada para ter visão geral do modelo
-        mCamera.setPosition({0.f, 10.0f, 20.f});
+        mCamera.setPosition({0.f, 7.5f, 20.f});
 
         // =================== ESTATÍSTICAS ===================
         mRenderer.printStats();
