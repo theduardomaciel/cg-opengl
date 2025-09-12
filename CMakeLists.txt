@@ -18,9 +18,13 @@ set(CG_ENGINE_SOURCES
     src/core/FPSCounter.cpp
     src/render/Shader.cpp
     src/render/Grid.cpp
+    src/render/Mesh.cpp
+    src/render/Model.cpp
+    src/render/ModelLoader.cpp
+    src/render/Renderer.cpp
     src/input/Camera.cpp
     src/input/Input.cpp
-        src/physics/Physics.cpp
+    src/physics/Physics.cpp
     src/ui/DebugUI.cpp
     external/glad-build/src/glad.c
 )

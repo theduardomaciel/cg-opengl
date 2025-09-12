@@ -11,9 +11,12 @@ Construído com OpenGL (3.3+), C++, e CMake.
 - Janela GLFW + captura de entrada
 - Câmera estilo FPS (WASD + olhar com o mouse)
 - Alternar captura do cursor (tecla `C`)
-- Grid de referência no plano XZ (y=0) para noção de espaço
+- **Sistema robusto de carregamento de modelos OBJ**
+- **Renderização 3D com iluminação básica (Phong)**
+- **Modelo do centro histórico carregado automaticamente**
+- Modo wireframe alternável (Ctrl + W)
 - FPS no título da janela + VSync habilitado
-- Shaders mínimos (linha simples)
+- Shaders modernos com suporte a normais e materiais
 
 ---
 
@@ -24,18 +27,22 @@ A aplicação foi refatorada para um layout de engine simples e extensível:
 include/
   core/      -> Application, Window
   input/     -> Camera, Input helpers
-  render/    -> Shader, Grid (futuro: Material, Mesh, Renderer)
+  render/    -> Shader, Mesh, Model, ModelLoader, Renderer (sistema completo de renderização 3D)
   physics/   -> PhysicsSystem (stub p/ Bullet)
   ui/        -> DebugUI (stub p/ ImGui)
 src/
   core/, input/, render/, physics/, ui/
+models/
+  structure_v5.obj -> Modelo principal do centro histórico
 ```
 
 Principais conceitos:
 - Application: orquestra loop principal (input -> física -> UI -> render).
 - Sistemas desacoplados: cada domínio em pasta própria para evolução incremental.
+- **Sistema de renderização modular**: Mesh (geometria), Model (transformações), ModelLoader (carregamento OBJ), Renderer (coordenação da renderização)
+- **Carregamento robusto de modelos**: Parser completo de arquivos OBJ com suporte a múltiplas meshes, normais automáticas, e otimização de vértices
+- **Iluminação Phong**: Shader avançado com componentes ambiente, difusa e especular
 - Fácil expansão: adicionar novo módulo = criar headers em `include/<mod>/` + fontes e registrar no `CMakeLists.txt` (lista `CG_ENGINE_SOURCES`).
-- Shader/Render isolados para futura adição de materiais, iluminação e carregamento de modelos.
 - Stubs (PhysicsSystem, DebugUI) permitem integrar Bullet / ImGui sem alterar o loop.
 
 Extensão rápida:
@@ -126,16 +133,19 @@ Binário: `build/cg_opengl.exe`
 * `W / A / S / D` → movimentação no plano (sem voo)
 * Mouse → olhar (pitch limitado ±89°)
 * `C` → alterna captura do cursor (lock/unlock)
+* `Ctrl + W` → alterna modo wireframe/sólido
 * `ESC` → sair
 
 ---
 
 ## Próximos Passos (Roadmap)
-1. [ ] Carregamento de modelos (Assimp)
-2. [ ] Colisão / física básica (Bullet)
-3. [ ] UI de debug (ImGui)
-4. [ ] Sistema de materiais e iluminação
-5. [ ] Altura do terreno / mesh real do ambiente histórico
+1. [x] Carregamento de modelos (sistema OBJ completo implementado)
+2. [x] Sistema de iluminação básica (Phong implementado)
+3. [ ] Carregamento de texturas e materiais
+4. [ ] Colisão / física básica (Bullet)
+5. [ ] UI de debug (ImGui)
+6. [ ] Sistema de materiais avançado com texturas
+7. [ ] Altura do terreno / navegação com colisão
 
 ---
 
