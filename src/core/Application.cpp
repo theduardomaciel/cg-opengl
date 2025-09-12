@@ -242,6 +242,10 @@ namespace cg
             std::cout << "Modo wireframe: " << (settings.enableWireframe ? "ATIVADO" : "DESATIVADO") << std::endl;
         }
 
+        // =================== ATUALIZAÇÃO DO SKYBOX ===================
+        // Atualiza animações do skybox (nuvens, etc.)
+        mRenderer.updateSkybox(deltaTime);
+
         // =================== CONTADOR DE FPS ===================
         // Atualiza estatísticas e título da janela
         mFPSCounter->update(deltaTime);

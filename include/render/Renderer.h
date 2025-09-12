@@ -1,6 +1,7 @@
 #pragma once
 #include "render/Model.h"
 #include "render/Shader.h"
+#include "render/Skybox.h"
 #include <vector>
 #include <memory>
 #include <unordered_map>
@@ -23,10 +24,10 @@ namespace cg
          */
         struct RenderSettings
         {
-            bool enableWireframe = false;                    // Ativa modo wireframe (apenas linhas)
-            bool enableBackfaceCulling = true;               // Ativa descarte de faces traseiras
-            bool enableDepthTest = true;                     // Ativa teste de profundidade
-            glm::vec4 clearColor{0.08f, 0.09f, 0.11f, 1.0f}; // Cor de fundo
+            bool enableWireframe = false;                 // Ativa modo wireframe (apenas linhas)
+            bool enableBackfaceCulling = true;            // Ativa descarte de faces traseiras
+            bool enableDepthTest = true;                  // Ativa teste de profundidade
+            glm::vec4 clearColor{0.5f, 0.8f, 1.0f, 1.0f}; // Cor de fundo (azul céu para teste)
         };
 
         /**
@@ -79,6 +80,28 @@ namespace cg
         void clear();
 
         /**
+         * @brief Habilita ou desabilita o skybox
+         * @param enabled true para habilitar, false para desabilitar
+         */
+        void setSkyboxEnabled(bool enabled) { mSkyboxEnabled = enabled; }
+
+        /**
+         * @brief Verifica se o skybox está habilitado
+         */
+        bool isSkyboxEnabled() const { return mSkyboxEnabled; }
+
+        /**
+         * @brief Obtém referência para configurar o skybox
+         */
+        Skybox &getSkybox() { return mSkybox; }
+
+        /**
+         * @brief Atualiza o skybox (animações, etc.)
+         * @param deltaTime Tempo decorrido desde a última atualização
+         */
+        void updateSkybox(float deltaTime) { mSkybox.update(deltaTime); }
+
+        /**
          * @brief Define as configurações de renderização
          * @param settings Novas configurações
          */
@@ -115,6 +138,10 @@ namespace cg
         std::unordered_map<std::string, std::unique_ptr<Model>> mModels; // Modelos por ID
         std::vector<std::string> mModelOrder;                            // Ordem de renderização dos modelos
         size_t mNextAutoId = 0;                                          // Contador para IDs automáticos
+
+        // =================== SKYBOX ===================
+        Skybox mSkybox;
+        bool mSkyboxEnabled = true;
 
         // =================== SHADERS ===================
         Shader mBasicShader;       // Shader básico para geometria sólida

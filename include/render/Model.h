@@ -98,7 +98,7 @@ namespace cg
          * @brief Obtém acesso somente leitura às meshes para renderização personalizada
          * @return Referência constante ao vetor de meshes
          */
-        const std::vector<std::unique_ptr<Mesh>>& getMeshes() const { return mMeshes; }
+        const std::vector<std::unique_ptr<Mesh>> &getMeshes() const { return mMeshes; }
 
         // Desabilita cópia (usa unique_ptr)
         Model(const Model &) = delete;

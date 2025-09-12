@@ -156,6 +156,14 @@ namespace cg
         // Configura estado inicial do OpenGL
         setupRenderState();
 
+        // =================== INICIALIZAR SKYBOX ===================
+        if (!mSkybox.init())
+        {
+            std::cerr << "ERRO: Falha ao inicializar skybox" << std::endl;
+            return false;
+        }
+        std::cout << "Skybox inicializado com sucesso" << std::endl;
+
         std::cout << "Sistema de renderização inicializado com sucesso" << std::endl;
         return true;
     }
@@ -230,6 +238,13 @@ namespace cg
         setupRenderState();
         clearBuffers();
 
+        // =================== RENDERIZAÇÃO DO SKYBOX ===================
+        // Renderiza o skybox primeiro (no fundo)
+        if (mSkyboxEnabled)
+        {
+            mSkybox.render(viewMatrix, projectionMatrix);
+        }
+
         // =================== RENDERIZAÇÃO DE OBJETOS OPACOS ===================
         // Primeiro renderiza todos os objetos opacos
         for (const std::string &modelId : mModelOrder)
@@ -245,7 +260,7 @@ namespace cg
         // Ativa blending para transparência
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        
+
         // Desativa escrita no buffer de profundidade para objetos transparentes
         glDepthMask(GL_FALSE);
 
@@ -264,7 +279,7 @@ namespace cg
         // Restaura estado padrão
         glDepthMask(GL_TRUE);
         glDisable(GL_BLEND);
-        
+
         // =================== FINALIZAÇÃO ===================
         Shader::unbind();
     }
@@ -374,15 +389,15 @@ namespace cg
     {
         // =================== CONFIGURAÇÃO DO SHADER BÁSICO ===================
         mBasicShader.bind();
-        
+
         // Define matrizes
         mBasicShader.setMat4("uView", viewMatrix);
         mBasicShader.setMat4("uProjection", projectionMatrix);
-        
+
         // Define parâmetros de iluminação
         mBasicShader.setVec3("uLightPos", glm::vec3(10.0f, 10.0f, 10.0f));
         mBasicShader.setVec3("uLightColor", glm::vec3(1.0f, 1.0f, 1.0f));
-        
+
         // Extrai posição da câmera
         glm::mat4 invView = glm::inverse(viewMatrix);
         glm::vec3 cameraPos = glm::vec3(invView[3]);
@@ -400,7 +415,7 @@ namespace cg
         mBasicShader.setVec3("uObjectColor", glm::vec3(0.7f, 0.7f, 0.8f));
 
         // =================== RENDERIZAÇÃO APENAS MESHES OPACAS ===================
-        for (const auto& mesh : model.getMeshes())
+        for (const auto &mesh : model.getMeshes())
         {
             if (mesh && !mesh->isTransparent())
             {
@@ -414,7 +429,7 @@ namespace cg
                 {
                     mBasicShader.setVec3("uObjectColor", glm::vec3(0.7f, 0.7f, 0.8f));
                 }
-                
+
                 mesh->draw();
             }
         }
@@ -424,15 +439,15 @@ namespace cg
     {
         // =================== CONFIGURAÇÃO DO SHADER DE TRANSPARÊNCIA ===================
         mTransparentShader.bind();
-        
+
         // Define matrizes
         mTransparentShader.setMat4("uView", viewMatrix);
         mTransparentShader.setMat4("uProjection", projectionMatrix);
-        
+
         // Define parâmetros de iluminação
         mTransparentShader.setVec3("uLightPos", glm::vec3(10.0f, 10.0f, 10.0f));
         mTransparentShader.setVec3("uLightColor", glm::vec3(1.0f, 1.0f, 1.0f));
-        
+
         // Extrai posição da câmera
         glm::mat4 invView = glm::inverse(viewMatrix);
         glm::vec3 cameraPos = glm::vec3(invView[3]);
@@ -447,13 +462,13 @@ namespace cg
         mTransparentShader.setMat3("uNormalMatrix", normalMatrix);
 
         // Propriedades do material de vidro padrão
-        mTransparentShader.setVec3("uObjectColor", glm::vec3(0.9f, 0.95f, 1.0f)); // Azul claro
-        mTransparentShader.setFloat("uAlpha", 0.4f); // Transparência
-        mTransparentShader.setFloat("uShininess", 128.0f); // Brilho alto
+        mTransparentShader.setVec3("uObjectColor", glm::vec3(0.9f, 0.95f, 1.0f));  // Azul claro
+        mTransparentShader.setFloat("uAlpha", 0.4f);                               // Transparência
+        mTransparentShader.setFloat("uShininess", 128.0f);                         // Brilho alto
         mTransparentShader.setVec3("uSpecularColor", glm::vec3(1.0f, 1.0f, 1.0f)); // Reflexo branco
 
         // =================== RENDERIZAÇÃO APENAS MESHES TRANSPARENTES ===================
-        for (const auto& mesh : model.getMeshes())
+        for (const auto &mesh : model.getMeshes())
         {
             if (mesh && mesh->isTransparent())
             {
@@ -474,7 +489,7 @@ namespace cg
                     mTransparentShader.setFloat("uShininess", 128.0f);
                     mTransparentShader.setVec3("uSpecularColor", glm::vec3(1.0f, 1.0f, 1.0f));
                 }
-                
+
                 mesh->draw();
             }
         }
