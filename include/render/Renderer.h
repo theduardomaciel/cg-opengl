@@ -117,7 +117,8 @@ namespace cg
         size_t mNextAutoId = 0;                                          // Contador para IDs automáticos
 
         // =================== SHADERS ===================
-        Shader mBasicShader; // Shader básico para geometria sólida
+        Shader mBasicShader;       // Shader básico para geometria sólida
+        Shader mTransparentShader; // Shader para materiais transparentes
 
         // =================== CONFIGURAÇÕES ===================
         RenderSettings mSettings;
@@ -138,12 +139,20 @@ namespace cg
         void clearBuffers();
 
         /**
-         * @brief Renderiza um modelo específico
+         * @brief Renderiza um modelo específico (objetos opacos)
          * @param model Modelo a ser renderizado
          * @param viewMatrix Matriz de visualização
          * @param projectionMatrix Matriz de projeção
          */
-        void renderModel(const Model &model, const glm::mat4 &viewMatrix, const glm::mat4 &projectionMatrix);
+        void renderModelOpaque(const Model &model, const glm::mat4 &viewMatrix, const glm::mat4 &projectionMatrix);
+
+        /**
+         * @brief Renderiza um modelo específico (objetos transparentes)
+         * @param model Modelo a ser renderizado
+         * @param viewMatrix Matriz de visualização
+         * @param projectionMatrix Matriz de projeção
+         */
+        void renderModelTransparent(const Model &model, const glm::mat4 &viewMatrix, const glm::mat4 &projectionMatrix);
     };
 
 } // namespace cg

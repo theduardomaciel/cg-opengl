@@ -56,13 +56,13 @@ namespace cg
         bool initScene();
         bool initSystems();
 
-    // =================== LOOP PRINCIPAL ===================
-    void mainLoop();
-    void updateSystems(float deltaTime);
-    void renderScene();
-    
-    // =================== UTILITÁRIOS ===================
-    std::unique_ptr<Model> createTestCube(); // Cria um cubo de teste se nenhum modelo puder ser carregado        // =================== CONFIGURAÇÃO ===================
+        // =================== LOOP PRINCIPAL ===================
+        void mainLoop();
+        void updateSystems(float deltaTime);
+        void renderScene();
+
+        // =================== UTILITÁRIOS ===================
+        std::unique_ptr<Model> createTestCube(); // Cria um cubo de teste se nenhum modelo puder ser carregado        // =================== CONFIGURAÇÃO ===================
         AppConfig mConfig;
         bool mInitialized = false;
 

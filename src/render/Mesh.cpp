@@ -6,16 +6,19 @@ namespace cg
 
     Mesh::Mesh(const std::vector<Vertex> &vertices,
                const std::vector<GLuint> &indices,
-               const std::string &name)
-        : vertices(vertices), indices(indices), name(name)
+               const std::string &name,
+               std::shared_ptr<Material> material)
+        : vertices(vertices), indices(indices), name(name), material(material)
     {
 
         // Configura os buffers OpenGL para esta mesh
         setupMesh();
 
+        std::string materialInfo = material ? " com material " + material->getName() : " sem material";
         std::cout << "Mesh criada: " << name
                   << " (Vértices: " << vertices.size()
-                  << ", Triângulos: " << getTriangleCount() << ")" << std::endl;
+                  << ", Triângulos: " << getTriangleCount() << ")"
+                  << materialInfo << std::endl;
     }
 
     Mesh::~Mesh()
@@ -24,7 +27,7 @@ namespace cg
     }
 
     Mesh::Mesh(Mesh &&other) noexcept
-        : vertices(std::move(other.vertices)), indices(std::move(other.indices)), name(std::move(other.name)), mVAO(other.mVAO), mVBO(other.mVBO), mEBO(other.mEBO)
+        : vertices(std::move(other.vertices)), indices(std::move(other.indices)), name(std::move(other.name)), material(std::move(other.material)), mVAO(other.mVAO), mVBO(other.mVBO), mEBO(other.mEBO)
     {
 
         // Zera os recursos do objeto movido para evitar double-deletion
@@ -44,6 +47,7 @@ namespace cg
             vertices = std::move(other.vertices);
             indices = std::move(other.indices);
             name = std::move(other.name);
+            material = std::move(other.material);
             mVAO = other.mVAO;
             mVBO = other.mVBO;
             mEBO = other.mEBO;

@@ -100,6 +100,59 @@ namespace cg
 
         std::cout << "Shader básico compilado com sucesso" << std::endl;
 
+        // =================== SHADER PARA TRANSPARÊNCIA ===================
+        // Mesmo vertex shader
+        const char *transparentFragmentShaderSource = R"GLSL(
+        #version 330 core
+        
+        // Dados de entrada do vertex shader
+        in vec3 FragPos;   // Posição do fragmento
+        in vec3 Normal;    // Normal do fragmento
+        in vec2 TexCoord;  // Coordenada de textura
+        
+        // Cor final de saída
+        out vec4 FragColor;
+        
+        // Configurações de iluminação
+        uniform vec3 uLightPos;     // Posição da luz
+        uniform vec3 uLightColor;   // Cor da luz
+        uniform vec3 uViewPos;      // Posição da câmera
+        uniform vec3 uObjectColor;  // Cor base do objeto
+        uniform float uAlpha;       // Transparência do material
+        uniform float uShininess;   // Brilho especular
+        uniform vec3 uSpecularColor; // Cor especular
+        
+        void main() {
+            // =================== ILUMINAÇÃO AMBIENTE ===================
+            float ambientStrength = 0.2;
+            vec3 ambient = ambientStrength * uLightColor;
+            
+            // =================== ILUMINAÇÃO DIFUSA ===================
+            vec3 lightDir = normalize(uLightPos - FragPos);
+            float diff = max(dot(Normal, lightDir), 0.0);
+            vec3 diffuse = diff * uLightColor;
+            
+            // =================== ILUMINAÇÃO ESPECULAR ===================
+            vec3 viewDir = normalize(uViewPos - FragPos);
+            vec3 reflectDir = reflect(-lightDir, Normal);
+            float spec = pow(max(dot(viewDir, reflectDir), 0.0), uShininess);
+            vec3 specular = spec * uSpecularColor * uLightColor;
+            
+            // =================== COR FINAL COM TRANSPARÊNCIA ===================
+            vec3 result = (ambient + diffuse + specular) * uObjectColor;
+            FragColor = vec4(result, uAlpha);
+        }
+    )GLSL";
+
+        // Compila o shader de transparência
+        if (!mTransparentShader.compile(vertexShaderSource, transparentFragmentShaderSource))
+        {
+            std::cerr << "ERRO: Falha ao compilar shader de transparência do renderer" << std::endl;
+            return false;
+        }
+
+        std::cout << "Shader de transparência compilado com sucesso" << std::endl;
+
         // Configura estado inicial do OpenGL
         setupRenderState();
 
@@ -177,32 +230,41 @@ namespace cg
         setupRenderState();
         clearBuffers();
 
-        // =================== CONFIGURAÇÃO DO SHADER ===================
-        mBasicShader.bind();
-
-        // Define matrizes
-        mBasicShader.setMat4("uView", viewMatrix);
-        mBasicShader.setMat4("uProjection", projectionMatrix);
-
-        // Define parâmetros de iluminação (luz fixa por enquanto)
-        mBasicShader.setVec3("uLightPos", glm::vec3(10.0f, 10.0f, 10.0f));
-        mBasicShader.setVec3("uLightColor", glm::vec3(1.0f, 1.0f, 1.0f));
-
-        // Extrai posição da câmera da matriz de visualização (inversa)
-        glm::mat4 invView = glm::inverse(viewMatrix);
-        glm::vec3 cameraPos = glm::vec3(invView[3]);
-        mBasicShader.setVec3("uViewPos", cameraPos);
-
-        // =================== RENDERIZAÇÃO DOS MODELOS ===================
+        // =================== RENDERIZAÇÃO DE OBJETOS OPACOS ===================
+        // Primeiro renderiza todos os objetos opacos
         for (const std::string &modelId : mModelOrder)
         {
             auto it = mModels.find(modelId);
             if (it != mModels.end() && it->second)
             {
-                renderModel(*it->second, viewMatrix, projectionMatrix);
+                renderModelOpaque(*it->second, viewMatrix, projectionMatrix);
             }
         }
 
+        // =================== CONFIGURAÇÃO PARA TRANSPARÊNCIA ===================
+        // Ativa blending para transparência
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        
+        // Desativa escrita no buffer de profundidade para objetos transparentes
+        glDepthMask(GL_FALSE);
+
+        // =================== RENDERIZAÇÃO DE OBJETOS TRANSPARENTES ===================
+        // Renderiza objetos transparentes por último
+        for (const std::string &modelId : mModelOrder)
+        {
+            auto it = mModels.find(modelId);
+            if (it != mModels.end() && it->second)
+            {
+                renderModelTransparent(*it->second, viewMatrix, projectionMatrix);
+            }
+        }
+
+        // =================== RESTAURAÇÃO DO ESTADO ===================
+        // Restaura estado padrão
+        glDepthMask(GL_TRUE);
+        glDisable(GL_BLEND);
+        
         // =================== FINALIZAÇÃO ===================
         Shader::unbind();
     }
@@ -308,22 +370,114 @@ namespace cg
         glClear(clearMask);
     }
 
-    void Renderer::renderModel(const Model &model, const glm::mat4 &viewMatrix, const glm::mat4 &projectionMatrix)
+    void Renderer::renderModelOpaque(const Model &model, const glm::mat4 &viewMatrix, const glm::mat4 &projectionMatrix)
     {
+        // =================== CONFIGURAÇÃO DO SHADER BÁSICO ===================
+        mBasicShader.bind();
+        
+        // Define matrizes
+        mBasicShader.setMat4("uView", viewMatrix);
+        mBasicShader.setMat4("uProjection", projectionMatrix);
+        
+        // Define parâmetros de iluminação
+        mBasicShader.setVec3("uLightPos", glm::vec3(10.0f, 10.0f, 10.0f));
+        mBasicShader.setVec3("uLightColor", glm::vec3(1.0f, 1.0f, 1.0f));
+        
+        // Extrai posição da câmera
+        glm::mat4 invView = glm::inverse(viewMatrix);
+        glm::vec3 cameraPos = glm::vec3(invView[3]);
+        mBasicShader.setVec3("uViewPos", cameraPos);
+
         // =================== CONFIGURAÇÃO DAS MATRIZES ===================
         glm::mat4 modelMatrix = model.getModelMatrix();
         mBasicShader.setMat4("uModel", modelMatrix);
 
         // Matriz normal para transformar corretamente as normais
-        // (inversa transposta da matriz modelo)
         glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(modelMatrix)));
         mBasicShader.setMat3("uNormalMatrix", normalMatrix);
 
-        // Cor do objeto (por enquanto uma cor fixa, no futuro pode vir de material)
+        // Cor do objeto padrão
         mBasicShader.setVec3("uObjectColor", glm::vec3(0.7f, 0.7f, 0.8f));
 
-        // =================== RENDERIZAÇÃO ===================
-        model.draw();
+        // =================== RENDERIZAÇÃO APENAS MESHES OPACAS ===================
+        for (const auto& mesh : model.getMeshes())
+        {
+            if (mesh && !mesh->isTransparent())
+            {
+                // Configura material se disponível
+                if (mesh->hasMaterial())
+                {
+                    auto material = mesh->getMaterial();
+                    mBasicShader.setVec3("uObjectColor", material->getAlbedo());
+                }
+                else
+                {
+                    mBasicShader.setVec3("uObjectColor", glm::vec3(0.7f, 0.7f, 0.8f));
+                }
+                
+                mesh->draw();
+            }
+        }
+    }
+
+    void Renderer::renderModelTransparent(const Model &model, const glm::mat4 &viewMatrix, const glm::mat4 &projectionMatrix)
+    {
+        // =================== CONFIGURAÇÃO DO SHADER DE TRANSPARÊNCIA ===================
+        mTransparentShader.bind();
+        
+        // Define matrizes
+        mTransparentShader.setMat4("uView", viewMatrix);
+        mTransparentShader.setMat4("uProjection", projectionMatrix);
+        
+        // Define parâmetros de iluminação
+        mTransparentShader.setVec3("uLightPos", glm::vec3(10.0f, 10.0f, 10.0f));
+        mTransparentShader.setVec3("uLightColor", glm::vec3(1.0f, 1.0f, 1.0f));
+        
+        // Extrai posição da câmera
+        glm::mat4 invView = glm::inverse(viewMatrix);
+        glm::vec3 cameraPos = glm::vec3(invView[3]);
+        mTransparentShader.setVec3("uViewPos", cameraPos);
+
+        // =================== CONFIGURAÇÃO DAS MATRIZES ===================
+        glm::mat4 modelMatrix = model.getModelMatrix();
+        mTransparentShader.setMat4("uModel", modelMatrix);
+
+        // Matriz normal
+        glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(modelMatrix)));
+        mTransparentShader.setMat3("uNormalMatrix", normalMatrix);
+
+        // Propriedades do material de vidro padrão
+        mTransparentShader.setVec3("uObjectColor", glm::vec3(0.9f, 0.95f, 1.0f)); // Azul claro
+        mTransparentShader.setFloat("uAlpha", 0.4f); // Transparência
+        mTransparentShader.setFloat("uShininess", 128.0f); // Brilho alto
+        mTransparentShader.setVec3("uSpecularColor", glm::vec3(1.0f, 1.0f, 1.0f)); // Reflexo branco
+
+        // =================== RENDERIZAÇÃO APENAS MESHES TRANSPARENTES ===================
+        for (const auto& mesh : model.getMeshes())
+        {
+            if (mesh && mesh->isTransparent())
+            {
+                // Configura material de vidro
+                if (mesh->hasMaterial())
+                {
+                    auto material = mesh->getMaterial();
+                    mTransparentShader.setVec3("uObjectColor", material->getAlbedo());
+                    mTransparentShader.setFloat("uAlpha", material->getAlpha());
+                    mTransparentShader.setFloat("uShininess", material->getShininess());
+                    mTransparentShader.setVec3("uSpecularColor", material->getSpecular());
+                }
+                else
+                {
+                    // Valores padrão para vidro
+                    mTransparentShader.setVec3("uObjectColor", glm::vec3(0.9f, 0.95f, 1.0f));
+                    mTransparentShader.setFloat("uAlpha", 0.4f);
+                    mTransparentShader.setFloat("uShininess", 128.0f);
+                    mTransparentShader.setVec3("uSpecularColor", glm::vec3(1.0f, 1.0f, 1.0f));
+                }
+                
+                mesh->draw();
+            }
+        }
     }
 
 } // namespace cg

@@ -3,6 +3,8 @@
 #include <glm/glm.hpp>
 #include <vector>
 #include <string>
+#include <memory>
+#include "render/Material.h"
 
 namespace cg
 {
@@ -33,19 +35,22 @@ namespace cg
     {
     public:
         // =================== DADOS DA GEOMETRIA ===================
-        std::vector<Vertex> vertices; // Lista de vértices da mesh
-        std::vector<GLuint> indices;  // Lista de índices (3 índices = 1 triângulo)
-        std::string name;             // Nome opcional da mesh (para debug)
+        std::vector<Vertex> vertices;       // Lista de vértices da mesh
+        std::vector<GLuint> indices;        // Lista de índices (3 índices = 1 triângulo)
+        std::string name;                   // Nome opcional da mesh (para debug)
+        std::shared_ptr<Material> material; // Material da mesh
 
         /**
          * @brief Construtor que inicializa a mesh com vértices e índices
          * @param vertices Lista de vértices
          * @param indices Lista de índices para formar triângulos
          * @param name Nome opcional da mesh
+         * @param material Material da mesh (opcional)
          */
         Mesh(const std::vector<Vertex> &vertices,
              const std::vector<GLuint> &indices,
-             const std::string &name = "");
+             const std::string &name = "",
+             std::shared_ptr<Material> material = nullptr);
 
         /**
          * @brief Destrutor que libera recursos OpenGL
@@ -68,6 +73,32 @@ namespace cg
          * @return Número de vértices
          */
         size_t getVertexCount() const { return vertices.size(); }
+
+        // =================== GERENCIAMENTO DE MATERIAIS ===================
+
+        /**
+         * @brief Define o material da mesh
+         * @param mat Ponteiro compartilhado para o material
+         */
+        void setMaterial(std::shared_ptr<Material> mat) { material = mat; }
+
+        /**
+         * @brief Obtém o material da mesh
+         * @return Ponteiro compartilhado para o material (pode ser nullptr)
+         */
+        std::shared_ptr<Material> getMaterial() const { return material; }
+
+        /**
+         * @brief Verifica se a mesh tem material
+         * @return true se tem material, false caso contrário
+         */
+        bool hasMaterial() const { return material != nullptr; }
+
+        /**
+         * @brief Verifica se a mesh é transparente
+         * @return true se tem material transparente, false caso contrário
+         */
+        bool isTransparent() const { return material && material->isTransparent(); }
 
         // Desabilita cópia para evitar problemas com recursos OpenGL
         Mesh(const Mesh &) = delete;

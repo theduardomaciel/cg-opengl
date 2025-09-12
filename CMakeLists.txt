@@ -22,6 +22,7 @@ set(CG_ENGINE_SOURCES
     src/render/Model.cpp
     src/render/ModelLoader.cpp
     src/render/Renderer.cpp
+    src/render/Material.cpp
     src/input/Camera.cpp
     src/input/Input.cpp
     src/physics/Physics.cpp

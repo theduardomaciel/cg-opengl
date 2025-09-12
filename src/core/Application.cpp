@@ -121,32 +121,34 @@ namespace cg
 
         // Lista de caminhos possíveis para o modelo (em ordem de prioridade)
         std::vector<std::string> possiblePaths = {
-            "models/structure_v5.obj",                                          // Caminho relativo do projeto
-            "../models/structure_v5.obj",                                       // Uma pasta acima (se executando do build)
-            "../../models/structure_v5.obj",                                    // Duas pastas acima
-            "external/bullet3/examples/pybullet/gym/pybullet_data/cube.obj",    // Modelo de teste do bullet3
-            "external/bullet3/examples/pybullet/gym/pybullet_data/sphere_smooth.obj", // Modelo alternativo
+            "models/structure_v5.obj",       // Caminho relativo do projeto
+            "../models/structure_v5.obj",    // Uma pasta acima (se executando do build)
+            "../../models/structure_v5.obj", // Duas pastas acima
         };
 
         std::unique_ptr<Model> model = nullptr;
         std::string usedPath;
 
         // Tenta carregar o modelo usando diferentes caminhos
-        for (const auto& path : possiblePaths) {
+        for (const auto &path : possiblePaths)
+        {
             std::cout << "Tentando carregar modelo de: " << path << std::endl;
             model = ModelLoader::loadModel(path, "CentroHistorico");
-            if (model) {
+            if (model)
+            {
                 usedPath = path;
                 break;
             }
         }
 
-        if (!model) {
+        if (!model)
+        {
             std::cerr << "ERRO: Falha ao carregar qualquer modelo. Criando modelo de teste..." << std::endl;
-            
+
             // Cria um modelo de teste simples (cubo) se nenhum arquivo puder ser carregado
             model = createTestCube();
-            if (!model) {
+            if (!model)
+            {
                 std::cerr << "ERRO: Falha ao criar modelo de teste" << std::endl;
                 return false;
             }
@@ -277,71 +279,71 @@ namespace cg
         mInputManager.handleMouseMovement(xpos, ypos, mCamera);
     }
 
-    std::unique_ptr<Model> Application::createTestCube() {
+    std::unique_ptr<Model> Application::createTestCube()
+    {
         std::cout << "Criando cubo de teste..." << std::endl;
-        
+
         // =================== VÉRTICES DO CUBO ===================
         // Cubo simples centrado na origem com lado de 2 unidades
         std::vector<Vertex> vertices = {
             // Face frontal (Z+)
-            {{-1.0f, -1.0f,  1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}}, // 0
-            {{ 1.0f, -1.0f,  1.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}}, // 1
-            {{ 1.0f,  1.0f,  1.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}}, // 2
-            {{-1.0f,  1.0f,  1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}}, // 3
-            
+            {{-1.0f, -1.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}}, // 0
+            {{1.0f, -1.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},  // 1
+            {{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},   // 2
+            {{-1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},  // 3
+
             // Face traseira (Z-)
             {{-1.0f, -1.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, {1.0f, 0.0f}}, // 4
-            {{ 1.0f, -1.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 0.0f}}, // 5
-            {{ 1.0f,  1.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f}}, // 6
-            {{-1.0f,  1.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, {1.0f, 1.0f}}, // 7
-            
+            {{1.0f, -1.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 0.0f}},  // 5
+            {{1.0f, 1.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f}},   // 6
+            {{-1.0f, 1.0f, -1.0f}, {0.0f, 0.0f, -1.0f}, {1.0f, 1.0f}},  // 7
+
             // Face esquerda (X-)
             {{-1.0f, -1.0f, -1.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}}, // 8
-            {{-1.0f, -1.0f,  1.0f}, {-1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}}, // 9
-            {{-1.0f,  1.0f,  1.0f}, {-1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}}, // 10
-            {{-1.0f,  1.0f, -1.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}}, // 11
-            
+            {{-1.0f, -1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},  // 9
+            {{-1.0f, 1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}},   // 10
+            {{-1.0f, 1.0f, -1.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}},  // 11
+
             // Face direita (X+)
-            {{ 1.0f, -1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}}, // 12
-            {{ 1.0f, -1.0f,  1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}}, // 13
-            {{ 1.0f,  1.0f,  1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}}, // 14
-            {{ 1.0f,  1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}}, // 15
-            
+            {{1.0f, -1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}}, // 12
+            {{1.0f, -1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},  // 13
+            {{1.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}},   // 14
+            {{1.0f, 1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}},  // 15
+
             // Face superior (Y+)
-            {{-1.0f,  1.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}}, // 16
-            {{ 1.0f,  1.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f}}, // 17
-            {{ 1.0f,  1.0f,  1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}}, // 18
-            {{-1.0f,  1.0f,  1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}}, // 19
-            
+            {{-1.0f, 1.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}}, // 16
+            {{1.0f, 1.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f}},  // 17
+            {{1.0f, 1.0f, 1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},   // 18
+            {{-1.0f, 1.0f, 1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},  // 19
+
             // Face inferior (Y-)
             {{-1.0f, -1.0f, -1.0f}, {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f}}, // 20
-            {{ 1.0f, -1.0f, -1.0f}, {0.0f, -1.0f, 0.0f}, {1.0f, 0.0f}}, // 21
-            {{ 1.0f, -1.0f,  1.0f}, {0.0f, -1.0f, 0.0f}, {1.0f, 1.0f}}, // 22
-            {{-1.0f, -1.0f,  1.0f}, {0.0f, -1.0f, 0.0f}, {0.0f, 1.0f}}  // 23
+            {{1.0f, -1.0f, -1.0f}, {0.0f, -1.0f, 0.0f}, {1.0f, 0.0f}},  // 21
+            {{1.0f, -1.0f, 1.0f}, {0.0f, -1.0f, 0.0f}, {1.0f, 1.0f}},   // 22
+            {{-1.0f, -1.0f, 1.0f}, {0.0f, -1.0f, 0.0f}, {0.0f, 1.0f}}   // 23
         };
-        
+
         // =================== ÍNDICES DO CUBO ===================
         // Cada face é composta por 2 triângulos (6 índices por face)
         std::vector<GLuint> indices = {
             // Face frontal
-            0, 1, 2,   2, 3, 0,
-            // Face traseira  
-            4, 6, 5,   6, 4, 7,
+            0, 1, 2, 2, 3, 0,
+            // Face traseira
+            4, 6, 5, 6, 4, 7,
             // Face esquerda
-            8, 9, 10,  10, 11, 8,
+            8, 9, 10, 10, 11, 8,
             // Face direita
             12, 14, 13, 14, 12, 15,
             // Face superior
             16, 17, 18, 18, 19, 16,
             // Face inferior
-            20, 22, 21, 22, 20, 23
-        };
-        
+            20, 22, 21, 22, 20, 23};
+
         // =================== CRIAÇÃO DO MODELO ===================
         auto model = std::make_unique<Model>("CuboTeste");
         auto mesh = std::make_unique<Mesh>(vertices, indices, "CuboMesh");
         model->addMesh(std::move(mesh));
-        
+
         std::cout << "Cubo de teste criado com sucesso!" << std::endl;
         return model;
     }

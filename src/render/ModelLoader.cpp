@@ -1,4 +1,5 @@
 #include "render/ModelLoader.h"
+#include "render/Material.h"
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -269,7 +270,21 @@ namespace cg
                 meshName = "Mesh_" + std::to_string(model.getMeshCount() + 1);
             }
 
-            auto mesh = std::make_unique<Mesh>(data.currentVertices, data.currentIndices, meshName);
+            // =================== DETECÇÃO AUTOMÁTICA DE MATERIAL DE VIDRO ===================
+            std::shared_ptr<Material> material = nullptr;
+
+            // Verifica se o nome da mesh contém "Glass" (case-insensitive)
+            std::string meshNameLower = meshName;
+            std::transform(meshNameLower.begin(), meshNameLower.end(), meshNameLower.begin(), ::tolower);
+
+            if (meshNameLower.find("glass") != std::string::npos)
+            {
+                // Cria material de vidro com transparência moderada
+                material = std::make_shared<Material>(Material::createGlass(0.4f, glm::vec3(0.9f, 0.95f, 1.0f)));
+                std::cout << "Material de vidro aplicado automaticamente à mesh: " << meshName << std::endl;
+            }
+
+            auto mesh = std::make_unique<Mesh>(data.currentVertices, data.currentIndices, meshName, material);
             model.addMesh(std::move(mesh));
 
             // Limpa dados da mesh atual
