@@ -1,13 +1,23 @@
-# cg-opengl (OpenGL + GLFW + GLM)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="/.github/cover.png">
+  <source media="(prefers-color-scheme: light)" srcset="/.github/cover_light.png">
+    <img alt="Banner do projeto" src="/.github/cover_light.png">
+</picture>
 
-Um simulador minimalista em primeira pessoa para explorar um centro histórico.  
-Nesta primeira versão, temos: plano (grid) para navegação e câmera FPS básica.
+<br />
 
+## 🚶 Sobre o Projeto
+
+Um simulador minimalista em primeira pessoa para explorar o Memorial à República em Maceió–AL como requisito da disciplina de Computação Gráfica (UFAL, 2025.1).  
 Construído com OpenGL (3.3+), C++, e CMake.
+
+> [!WARNING]
+> Alguns arquivos grandes, como modelos OBJ, não estão inclusos no repositório por questões de tamanho.  
+> Para baixá-los, basta acessar a [pasta no Drive do projeto](https://drive.google.com/drive/folders/1HmuZ-jdn9_bICnKb1MeXOPKZ0eIS5S1N?usp=sharing) e colocar os arquivos na pasta `models/` na raiz do projeto.
 
 ---
 
-## Features
+## ⭐ Features
 - Janela GLFW + captura de entrada
 - Câmera estilo FPS (WASD + olhar com o mouse)
 - Alternar captura do cursor (tecla `C`)
@@ -20,8 +30,8 @@ Construído com OpenGL (3.3+), C++, e CMake.
 
 ---
 
-## Arquitetura Modular
-A aplicação foi refatorada para um layout de engine simples e extensível:
+## ⚙️ Arquitetura Modular
+A aplicação foi pensada para ter um layout de engine simples e extensível:
 
 ```
 include/
@@ -36,7 +46,7 @@ models/
   structure_v{x}.obj -> Modelo principal do centro histórico
 ```
 
-Principais conceitos:
+### Principais conceitos:
 - Application: orquestra loop principal (input -> física -> UI -> render).
 - Sistemas desacoplados: cada domínio em pasta própria para evolução incremental.
 - **Sistema de renderização modular**: Mesh (geometria), Model (transformações), ModelLoader (carregamento OBJ), Renderer (coordenação da renderização)
@@ -45,7 +55,7 @@ Principais conceitos:
 - Fácil expansão: adicionar novo módulo = criar headers em `include/<mod>/` + fontes e registrar no `CMakeLists.txt` (lista `CG_ENGINE_SOURCES`).
 - Stubs (PhysicsSystem, DebugUI) permitem integrar Bullet / ImGui sem alterar o loop.
 
-Extensão rápida:
+### Extensão rápida:
 1. Criar arquivos em `include/novo/NovoSistema.h` e `src/novo/NovoSistema.cpp`.
 2. Incluir no `CMakeLists.txt` em `CG_ENGINE_SOURCES`.
 3. Instanciar em `Application` (campo + init + chamada no loop se necessário).
@@ -53,13 +63,15 @@ Extensão rápida:
 
 ---
 
-## Estrutura de Dependências
+## 🖇️ Estrutura de Dependências
 - GLFW: criação de janela e entrada
 - GLAD: carregamento de funções OpenGL 3.3 Core
 - GLM: matemática (vec/mat/projeção)
+- Assimp: carregamento de modelos 3D (formato OBJ)
+- Bullet (stub): física básica
 
 > [!NOTE]
-> Outras libs (Assimp, Bullet, ImGui) serão integradas em versões futuras.
+> Outras libs (ImGui) poderão ser integradas em versões futuras.
 
 ### Diretórios relevantes
 ```
@@ -82,7 +94,7 @@ python -m glad --profile=core --api="gl=3.3" --generator=c --out-path=external/g
 
 ---
 
-## Setup & Build
+## 🛠️ Setup & Build
 
 ### 1. Clonar repositório
 ```bash
@@ -129,7 +141,7 @@ Binário: `build/cg_opengl.exe`
 
 ---
 
-## Controles
+## 🕹️ Controles
 * `W / A / S / D` → movimentação no plano (sem voo)
 * Mouse → olhar (pitch limitado ±89°)
 * `C` → alterna captura do cursor (lock/unlock)
@@ -138,10 +150,10 @@ Binário: `build/cg_opengl.exe`
 
 ---
 
-## Próximos Passos (Roadmap)
+## 👣 Próximos Passos (Roadmap)
 1. [x] Carregamento de modelos (sistema OBJ completo implementado)
 2. [x] Sistema de iluminação básica (Phong implementado)
-3. [ ] Carregamento de texturas e materiais
+3. [x] Carregamento de texturas e materiais
 4. [ ] Colisão / física básica (Bullet)
 5. [ ] UI de debug (ImGui)
 6. [ ] Sistema de materiais avançado com texturas
@@ -149,17 +161,9 @@ Binário: `build/cg_opengl.exe`
 
 ---
 
-## Ferramentas de Debug
+## 🐞 Ferramentas de Debug
 * [RenderDoc](https://renderdoc.org) → inspeção de frames
 * `glfwSetErrorCallback` → log de erros de contexto
 * Compilar com flags de warning altas (já configurado)
 
 Para logging extra, adicionar prints ou macro de debug.
-
----
-
-## Notas Técnicas
-- OpenGL Core 3.3 (compatível com maioria das GPUs modernas)
-- VSync ligado (`glfwSwapInterval(1)`) – ajuste para medir FPS brutos
-- Grid desenhado com GL_LINES (sem index buffer pela simplicidade)
-- Delta time baseado em `glfwGetTime()`
