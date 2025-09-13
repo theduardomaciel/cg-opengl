@@ -167,3 +167,9 @@ Binário: `build/cg_opengl.exe`
 * Compilar com flags de warning altas (já configurado)
 
 Para logging extra, adicionar prints ou macro de debug.
+
+## 👥 Equipe
+A disciplina foi ministrada pelo Prof. Dr. Marcelo Costa Oliveira ([@oliveiramc](https://github.com/oliveiramc) e minha equipe foi composta por:
+
+- [Eduardo Maciel (@theduardomaciel)](https://github.com/theduardomaciel)
+- [Josenilton Ferreira (@914joseph)](https://github.com/914joseph)
