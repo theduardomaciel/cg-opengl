@@ -75,6 +75,15 @@ namespace cg
         Camera mCamera;
         Renderer mRenderer;
         glm::mat4 mProjectionMatrix{1.0f};
+
+        // =================== ESTADO DA PORTA ===================
+        bool mDoorsOpen = false; // estado atual das portas
+        // Guarda as transformações base para reset rápido (identidade)
+        glm::mat4 mDoorLeftBase{1.0f};
+        glm::mat4 mDoorRightBase{1.0f};
+
+        // Aplica rotação local às meshes das portas
+        void applyDoorTransforms(float leftAngleDeg, float rightAngleDeg);
     };
 
 } // namespace cg

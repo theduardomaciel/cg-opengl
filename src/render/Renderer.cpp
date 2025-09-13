@@ -403,22 +403,19 @@ namespace cg
         glm::vec3 cameraPos = glm::vec3(invView[3]);
         mBasicShader.setVec3("uViewPos", cameraPos);
 
-        // =================== CONFIGURAÇÃO DAS MATRIZES ===================
-        glm::mat4 modelMatrix = model.getModelMatrix();
-        mBasicShader.setMat4("uModel", modelMatrix);
-
-        // Matriz normal para transformar corretamente as normais
-        glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(modelMatrix)));
-        mBasicShader.setMat3("uNormalMatrix", normalMatrix);
-
-        // Cor do objeto padrão
-        mBasicShader.setVec3("uObjectColor", glm::vec3(0.7f, 0.7f, 0.8f));
-
         // =================== RENDERIZAÇÃO APENAS MESHES OPACAS ===================
+        // Cada mesh pode ter uma transformação local própria
         for (const auto &mesh : model.getMeshes())
         {
             if (mesh && !mesh->isTransparent())
             {
+                // Configuração das matrizes por mesh (modelo + hierarquia pai-filho)
+                glm::mat4 modelMatrix = model.getWorldMatrixForMesh(mesh.get());
+                mBasicShader.setMat4("uModel", modelMatrix);
+
+                glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(modelMatrix)));
+                mBasicShader.setMat3("uNormalMatrix", normalMatrix);
+
                 // Configura material se disponível
                 if (mesh->hasMaterial())
                 {
@@ -453,14 +450,6 @@ namespace cg
         glm::vec3 cameraPos = glm::vec3(invView[3]);
         mTransparentShader.setVec3("uViewPos", cameraPos);
 
-        // =================== CONFIGURAÇÃO DAS MATRIZES ===================
-        glm::mat4 modelMatrix = model.getModelMatrix();
-        mTransparentShader.setMat4("uModel", modelMatrix);
-
-        // Matriz normal
-        glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(modelMatrix)));
-        mTransparentShader.setMat3("uNormalMatrix", normalMatrix);
-
         // Propriedades do material de vidro padrão
         mTransparentShader.setVec3("uObjectColor", glm::vec3(0.9f, 0.95f, 1.0f));  // Azul claro
         mTransparentShader.setFloat("uAlpha", 0.4f);                               // Transparência
@@ -472,6 +461,13 @@ namespace cg
         {
             if (mesh && mesh->isTransparent())
             {
+                // Configuração das matrizes por mesh (modelo + hierarquia pai-filho)
+                glm::mat4 modelMatrix = model.getWorldMatrixForMesh(mesh.get());
+                mTransparentShader.setMat4("uModel", modelMatrix);
+
+                glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(modelMatrix)));
+                mTransparentShader.setMat3("uNormalMatrix", normalMatrix);
+
                 // Configura material de vidro
                 if (mesh->hasMaterial())
                 {

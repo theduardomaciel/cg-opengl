@@ -6,6 +6,7 @@
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <limits>
 
 namespace cg
 {
@@ -121,9 +122,9 @@ namespace cg
 
         // Lista de caminhos possíveis para o modelo (em ordem de prioridade)
         std::vector<std::string> possiblePaths = {
-            "models/structure_v6.obj",       // Caminho relativo do projeto
-            "../models/structure_v6.obj",    // Uma pasta acima (se executando do build)
-            "../../models/structure_v6.obj", // Duas pastas acima
+            "models/structure_v7.obj",       // Caminho relativo do projeto
+            "../models/structure_v7.obj",    // Uma pasta acima (se executando do build)
+            "../../models/structure_v7.obj", // Duas pastas acima
         };
 
         std::unique_ptr<Model> model = nullptr;
@@ -160,6 +161,14 @@ namespace cg
         // Posiciona o modelo no centro da cena
         model->setPosition(glm::vec3(0.0f, 0.0f, 0.0f));
         model->setScale(glm::vec3(1.0f, 1.0f, 1.0f)); // Tamanho original
+
+        if (model)
+        {
+            model->setParentByName("Front", "DoorLeft_glass");
+            model->setParentByName("Front2", "DoorRight_glass");
+            model->setParentByName("Back", "DoorLeft_glass");
+            model->setParentByName("Back2", "DoorRight_glass");
+        }
 
         // Adiciona o modelo ao renderer
         mRenderer.addModel(std::move(model), "centro_historico");
@@ -249,6 +258,19 @@ namespace cg
         // =================== CONTADOR DE FPS ===================
         // Atualiza estatísticas e título da janela
         mFPSCounter->update(deltaTime);
+
+        // =================== TOGGLE DAS PORTAS (TECLA E) ===================
+        static bool prevE = false;
+        bool pressedE = glfwGetKey(mWindow.handle(), GLFW_KEY_E) == GLFW_PRESS;
+        if (pressedE && !prevE)
+        {
+            mDoorsOpen = !mDoorsOpen;
+            float leftAngle = mDoorsOpen ? -90.0f : 0.0f; // abre para esquerda
+            float rightAngle = mDoorsOpen ? 90.0f : 0.0f; // abre para direita
+            applyDoorTransforms(leftAngle, rightAngle);
+            std::cout << (mDoorsOpen ? "Portas ABERTAS" : "Portas FECHADAS") << std::endl;
+        }
+        prevE = pressedE;
     }
 
     void Application::renderScene()
@@ -259,6 +281,64 @@ namespace cg
 
         // =================== RENDERIZAÇÃO DA CENA ===================
         mRenderer.render(view, projection);
+    }
+
+    void Application::applyDoorTransforms(float leftAngleDeg, float rightAngleDeg)
+    {
+        // Obtém o modelo principal
+        Model *model = mRenderer.getModel("centro_historico");
+        if (!model)
+            return;
+
+        // Encontra meshes das portas pelo nome
+        Mesh *left = model->findMeshByName("DoorLeft_glass");
+        Mesh *right = model->findMeshByName("DoorRight_glass");
+
+        auto buildHingedTransform = [](const Mesh *mesh, float angleDeg, bool useMinX) -> glm::mat4
+        {
+            if (!mesh || mesh->vertices.empty())
+            {
+                return glm::rotate(glm::mat4(1.0f), glm::radians(angleDeg), glm::vec3(0, 1, 0));
+            }
+
+            // Calcula AABB (axis-aligned-bounding-box) da mesh
+            float minX = std::numeric_limits<float>::max();
+            float maxX = std::numeric_limits<float>::lowest();
+            float minY = std::numeric_limits<float>::max();
+            float maxY = std::numeric_limits<float>::lowest();
+            float minZ = std::numeric_limits<float>::max();
+            float maxZ = std::numeric_limits<float>::lowest();
+
+            for (const auto &v : mesh->vertices)
+            {
+                minX = std::min(minX, v.position.x);
+                maxX = std::max(maxX, v.position.x);
+                minY = std::min(minY, v.position.y);
+                maxY = std::max(maxY, v.position.y);
+                minZ = std::min(minZ, v.position.z);
+                maxZ = std::max(maxZ, v.position.z);
+            }
+
+            // Pivô ao longo da aresta vertical (eixo Y) do batente
+            float pivotX = useMinX ? minX : maxX;
+            float pivotY = (minY + maxY) * 0.5f;
+            float pivotZ = (minZ + maxZ) * 0.5f;
+            glm::vec3 pivot(pivotX, pivotY, pivotZ);
+
+            glm::mat4 T_toOrigin = glm::translate(glm::mat4(1.0f), -pivot);
+            glm::mat4 R = glm::rotate(glm::mat4(1.0f), glm::radians(angleDeg), glm::vec3(0, 1, 0));
+            glm::mat4 T_back = glm::translate(glm::mat4(1.0f), pivot);
+            return T_back * R * T_toOrigin;
+        };
+
+        if (left)
+        {
+            left->setLocalTransform(buildHingedTransform(left, leftAngleDeg, /*useMinX=*/true));
+        }
+        if (right)
+        {
+            right->setLocalTransform(buildHingedTransform(right, rightAngleDeg, /*useMinX=*/false));
+        }
     }
 
     void Application::handleResize(int w, int h)

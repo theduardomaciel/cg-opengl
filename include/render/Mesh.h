@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include <glm/gtc/matrix_transform.hpp>
 #include "render/Material.h"
 
 namespace cg
@@ -108,11 +109,27 @@ namespace cg
         Mesh(Mesh &&other) noexcept;
         Mesh &operator=(Mesh &&other) noexcept;
 
+        // =================== TRANSFORMAÇÃO LOCAL ===================
+        /**
+         * @brief Define a transformação local da mesh (relativa ao Model)
+         * @param transform Matriz 4x4 de transformação local
+         */
+        void setLocalTransform(const glm::mat4 &transform) { mLocalTransform = transform; }
+
+        /**
+         * @brief Obtém a transformação local da mesh
+         * @return Matriz 4x4 da transformação local
+         */
+        const glm::mat4 &getLocalTransform() const { return mLocalTransform; }
+
     private:
         // =================== RECURSOS OPENGL ===================
         GLuint mVAO = 0; // Vertex Array Object - armazena configuração de atributos
         GLuint mVBO = 0; // Vertex Buffer Object - armazena dados dos vértices
         GLuint mEBO = 0; // Element Buffer Object - armazena índices dos triângulos
+
+        // =================== TRANSFORMAÇÃO LOCAL ===================
+        glm::mat4 mLocalTransform{1.0f};
 
         /**
          * @brief Configura os buffers OpenGL (VAO, VBO, EBO)

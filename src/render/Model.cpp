@@ -16,6 +16,8 @@ namespace cg
         {
             std::cout << "Adicionando mesh '" << mesh->name << "' ao modelo '" << mName << "'" << std::endl;
             mMeshes.push_back(std::move(mesh));
+            // Expande estrutura de pais mantendo sem pai por padrão
+            mParents.push_back(-1);
         }
     }
 
@@ -94,6 +96,88 @@ namespace cg
         }
 
         return mModelMatrix;
+    }
+
+    glm::mat4 Model::getWorldMatrixForMesh(const Mesh *mesh) const
+    {
+        if (!mesh)
+            return getModelMatrix();
+        int idx = indexOf(mesh);
+        if (idx < 0)
+            return getModelMatrix();
+
+        // world = Model * (ParentLocal * ... * ChildLocal)
+        return getModelMatrix() * accumulateLocalUpToRoot(idx);
+    }
+
+    bool Model::setParentByName(const std::string &childName, const std::string &parentName)
+    {
+        Mesh *child = findMeshByName(childName);
+        Mesh *parent = findMeshByName(parentName);
+        return setParent(child, parent);
+    }
+
+    bool Model::setParent(Mesh *child, Mesh *parent)
+    {
+        if (!child)
+            return false;
+
+        int cIdx = indexOf(child);
+        if (cIdx < 0)
+            return false;
+
+        int pIdx = -1;
+        if (parent)
+        {
+            pIdx = indexOf(parent);
+            if (pIdx < 0)
+                return false;
+
+            // Evita ciclo simples (pai não pode ser descendente do filho)
+            int cursor = pIdx;
+            while (cursor != -1)
+            {
+                if (cursor == cIdx)
+                {
+                    std::cerr << "ERRO: Tentativa de criar ciclo na hierarquia de meshes" << std::endl;
+                    return false;
+                }
+                cursor = mParents[cursor];
+            }
+        }
+
+        mParents[cIdx] = pIdx;
+        return true;
+    }
+
+    int Model::indexOf(const Mesh *mesh) const
+    {
+        for (size_t i = 0; i < mMeshes.size(); ++i)
+        {
+            if (mMeshes[i].get() == mesh)
+                return static_cast<int>(i);
+        }
+        return -1;
+    }
+
+    glm::mat4 Model::accumulateLocalUpToRoot(int meshIndex) const
+    {
+        glm::mat4 acc(1.0f);
+        int idx = meshIndex;
+        // Constrói cadeia de baixo para cima e acumula em ordem correta (pai antes do filho)
+        // Estratégia: empilhar índices e depois multiplicar na ordem da raiz até o filho
+        std::vector<int> chain;
+        while (idx != -1)
+        {
+            chain.push_back(idx);
+            idx = (idx >= 0 && idx < static_cast<int>(mParents.size())) ? mParents[idx] : -1;
+        }
+        for (int i = static_cast<int>(chain.size()) - 1; i >= 0; --i)
+        {
+            const Mesh *m = mMeshes[chain[i]].get();
+            acc = acc * (m ? m->getLocalTransform() : glm::mat4(1.0f));
+        }
+        return acc;
     }
 
     size_t Model::getTotalTriangleCount() const

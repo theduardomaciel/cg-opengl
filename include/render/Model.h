@@ -67,6 +67,29 @@ namespace cg
          */
         glm::mat4 getModelMatrix() const;
 
+    /**
+     * @brief Obtém a matriz mundo de uma mesh específica (modelo * cadeia de pais * local)
+     * @param mesh Ponteiro para a mesh pertencente a este Model
+     * @return Matriz 4x4 da transformação no espaço do mundo
+     */
+    glm::mat4 getWorldMatrixForMesh(const Mesh *mesh) const;
+
+    /**
+     * @brief Define a relação pai-filho entre duas meshes por nome
+     * @param childName Nome da mesh filha
+     * @param parentName Nome da mesh pai
+     * @return true se encontrado e vinculado, false caso contrário
+     */
+    bool setParentByName(const std::string &childName, const std::string &parentName);
+
+    /**
+     * @brief Define a relação pai-filho entre duas meshes
+     * @param child Ponteiro para a mesh filha
+     * @param parent Ponteiro para a mesh pai (ou nullptr para remover pai)
+     * @return true em caso de sucesso
+     */
+    bool setParent(Mesh *child, Mesh *parent);
+
         // =================== GETTERS ===================
 
         const glm::vec3 &getPosition() const { return mPosition; }
@@ -100,6 +123,41 @@ namespace cg
          */
         const std::vector<std::unique_ptr<Mesh>> &getMeshes() const { return mMeshes; }
 
+        /**
+         * @brief Acesso mutável às meshes (para aplicar transformações locais)
+         */
+        std::vector<std::unique_ptr<Mesh>> &getMeshesMutable() { return mMeshes; }
+
+        /**
+         * @brief Obtém um ponteiro para a mesh pelo nome (somente leitura)
+         * @param meshName Nome da mesh
+         * @return Ponteiro para Mesh ou nullptr se não encontrada
+         */
+        const Mesh *findMeshByName(const std::string &meshName) const
+        {
+            for (const auto &m : mMeshes)
+            {
+                if (m && m->name == meshName)
+                    return m.get();
+            }
+            return nullptr;
+        }
+
+        /**
+         * @brief Obtém um ponteiro para a mesh pelo nome (mutável)
+         * @param meshName Nome da mesh
+         * @return Ponteiro para Mesh ou nullptr se não encontrada
+         */
+        Mesh *findMeshByName(const std::string &meshName)
+        {
+            for (auto &m : mMeshes)
+            {
+                if (m && m->name == meshName)
+                    return m.get();
+            }
+            return nullptr;
+        }
+
         // Desabilita cópia (usa unique_ptr)
         Model(const Model &) = delete;
         Model &operator=(const Model &) = delete;
@@ -112,6 +170,9 @@ namespace cg
         // =================== DADOS DO MODELO ===================
         std::vector<std::unique_ptr<Mesh>> mMeshes; // Lista de meshes que compõem o modelo
         std::string mName;                          // Nome do modelo
+
+    // Índice do pai por mesh (alinha com mMeshes). -1 indica sem pai.
+    std::vector<int> mParents;
 
         // =================== TRANSFORMAÇÃO ===================
         glm::vec3 mPosition{0.0f}; // Posição no mundo (x, y, z)
@@ -128,6 +189,12 @@ namespace cg
          * @brief Marca que a matriz de transformação precisa ser recalculada
          */
         void markMatrixDirty() { mMatrixNeedsUpdate = true; }
+
+        // Utilitário: retorna o índice de uma mesh pelo ponteiro; -1 se não pertencer ao modelo
+        int indexOf(const Mesh *mesh) const;
+
+        // Utilitário: calcula a transformação local acumulada ao longo da cadeia de pais até a raiz
+        glm::mat4 accumulateLocalUpToRoot(int meshIndex) const;
     };
 
 } // namespace cg
